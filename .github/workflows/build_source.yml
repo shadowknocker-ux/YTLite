@@ -90,13 +90,24 @@ jobs:
           EOF
           echo "wrote $THEOS/include/roothide.h"
 
+      - name: Verify header dependencies are present
+        run: |
+          echo "== workspace =="; ls -la "${{ github.workspace }}"
+          echo "== YouTubeHeader (sample) =="; ls "${{ github.workspace }}/YouTubeHeader" | head -n 3 || echo "MISSING YouTubeHeader"
+          echo "== protobuf/objectivec (sample) =="; ls "${{ github.workspace }}/protobuf/objectivec" | head -n 5 || echo "MISSING protobuf/objectivec"
+
       - name: Build YTLite (.deb) from source
         run: |
           cd main
-          # The runner's clang is newer than Dan's toolchain and escalates warnings to errors
-          # (e.g. -Wmisleading-indentation). Relax warnings so the existing source compiles.
+          WS="${{ github.workspace }}"
+          # Relax warnings (runner clang is newer than Dan's and escalates warnings to errors),
+          # and add include search dirs so the source's relative imports resolve when Theos
+          # compiles .x files out of its build dir:
+          #   "../YouTubeHeader/..."  ->  <WS>/main/../YouTubeHeader  = <WS>/YouTubeHeader
+          #   "../protobuf/objectivec/..." -> <WS>/main/../protobuf/objectivec = <WS>/protobuf/objectivec
+          FLAGS="-w -Wno-error -iquote $WS/main -I$WS/main -I$WS"
           sed -i '' 's|_CFLAGS = |_CFLAGS = -w -Wno-error |' Makefile || true
-          make clean package DEBUG=0 FINALPACKAGE=1 ADDITIONAL_CFLAGS="-w -Wno-error" ADDITIONAL_OBJCFLAGS="-w -Wno-error"
+          make clean package DEBUG=0 FINALPACKAGE=1 ADDITIONAL_CFLAGS="$FLAGS" ADDITIONAL_OBJCFLAGS="$FLAGS"
           echo "=== produced packages ==="; ls -la packages
           mv packages/*.deb "${{ github.workspace }}/ytplus.deb"
 
