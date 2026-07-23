@@ -93,7 +93,10 @@ jobs:
       - name: Build YTLite (.deb) from source
         run: |
           cd main
-          make clean package DEBUG=0 FINALPACKAGE=1
+          # The runner's clang is newer than Dan's toolchain and escalates warnings to errors
+          # (e.g. -Wmisleading-indentation). Relax warnings so the existing source compiles.
+          sed -i '' 's|_CFLAGS = |_CFLAGS = -w -Wno-error |' Makefile || true
+          make clean package DEBUG=0 FINALPACKAGE=1 ADDITIONAL_CFLAGS="-w -Wno-error" ADDITIONAL_OBJCFLAGS="-w -Wno-error"
           echo "=== produced packages ==="; ls -la packages
           mv packages/*.deb "${{ github.workspace }}/ytplus.deb"
 
