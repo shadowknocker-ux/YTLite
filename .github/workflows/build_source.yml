@@ -71,11 +71,13 @@ jobs:
         run: |
           # YTNativeShare.x imports "../protobuf/objectivec/...", relative to the source root (main/).
           # So protobuf must sit as a sibling of main/ at the workspace root.
-          git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/protocolbuffers/protobuf
+          # Pin to v25.3: protobuf's main branch REMOVED GPBUnknownFieldSet.h (which YTNativeShare.x
+          # needs). v25.3 still ships all the ObjC headers the source imports.
+          git clone --quiet -n --depth=1 --filter=tree:0 --branch v25.3 https://github.com/protocolbuffers/protobuf
           cd protobuf
           git sparse-checkout set --no-cone objectivec
           git checkout
-          echo "protobuf objectivec headers:"; ls objectivec | head -n 5
+          echo "protobuf objectivec GPBUnknownFieldSet present?"; ls objectivec/GPBUnknownFieldSet.h
 
       - name: Provide roothide.h shim (sideload build doesn't use jbroot fallback)
         run: |
