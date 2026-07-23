@@ -27,10 +27,16 @@ static NSString *GetCacheSize() {
 %hook YTAppSettingsPresentationData
 + (NSArray *)settingsCategoryOrder {
     NSArray *order = %orig;
-    NSMutableArray *mutableOrder = [order mutableCopy];
-    NSUInteger insertIndex = [order indexOfObject:@(1)];
-    if (insertIndex != NSNotFound)
-        [mutableOrder insertObject:@(YTLiteSection) atIndex:insertIndex + 1];
+    NSMutableArray *mutableOrder = order ? [order mutableCopy] : [NSMutableArray array];
+    // Robust insert for newer YouTube versions (e.g. 21.29.x): the original code only inserted
+    // after category @(1); on newer builds that id may be absent, leaving our section out.
+    if (![mutableOrder containsObject:@(YTLiteSection)]) {
+        NSUInteger insertIndex = [mutableOrder indexOfObject:@(1)];
+        if (insertIndex != NSNotFound)
+            [mutableOrder insertObject:@(YTLiteSection) atIndex:insertIndex + 1];
+        else
+            [mutableOrder insertObject:@(YTLiteSection) atIndex:0]; // fallback: show it at the top
+    }
     return mutableOrder;
 }
 %end
