@@ -350,6 +350,8 @@ static const NSInteger YTLiteGroup = 'ytlt';
         }
         selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
             NSArray <YTSettingsSectionItem *> *rows = @[
+                [self switchWithTitle:@"RemoveCommunityPosts" key:@"removeCommunityPosts"],
+                [self switchWithTitle:@"RemoveMixPlaylists" key:@"removeMixPlaylists"],
                 [self switchWithTitle:@"CopyVideoInfo" key:@"copyVideoInfo"],
                 [self switchWithTitle:@"PostManager" key:@"postManager"],
                 [self switchWithTitle:@"SaveProfilePhoto" key:@"saveProfilePhoto"],

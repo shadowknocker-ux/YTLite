@@ -707,8 +707,12 @@ static BOOL findCell(ASNodeController *nodeController, NSArray <NSString *> *ide
         _ASCollectionViewCell *cell = %orig;
         if ([cell respondsToSelector:@selector(node)]) {
             NSString *idToRemove = [[cell node] accessibilityIdentifier];
+            BOOL isCommunityPost = ([idToRemove containsString:@"post_root.eml"] || [idToRemove containsString:@"post_base_wrapper"]);
+            BOOL isMixPlaylist = [idToRemove isEqualToString:@"mix-watch"];
             if ([idToRemove isEqualToString:@"statement_banner.view"] ||
-                (([idToRemove isEqualToString:@"eml.shorts-grid"] || [idToRemove isEqualToString:@"eml.shorts-shelf"]) && ytlBool(@"hideShorts"))) {
+                (([idToRemove isEqualToString:@"eml.shorts-grid"] || [idToRemove isEqualToString:@"eml.shorts-shelf"]) && ytlBool(@"hideShorts")) ||
+                (isCommunityPost && ytlBool(@"removeCommunityPosts")) ||
+                (isMixPlaylist && ytlBool(@"removeMixPlaylists"))) {
                 [self removeCellsAtIndexPath:indexPath];
             }
         }
