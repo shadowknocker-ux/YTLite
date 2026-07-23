@@ -41,6 +41,43 @@ static NSString *GetCacheSize() {
 }
 %end
 
+// --- Cairo grouped-settings support (YouTube 19.03.2+, e.g. 21.29.x) ---
+// Newer YouTube builds order the settings menu via YTAppSettingsGroupPresentationData/orderedGroups
+// (returning YTSettingsGroupData objects), NOT the legacy settingsCategoryOrder above. Register a
+// dedicated "YouTube Plus" group so our section (789) appears and renders through the existing
+// updateSectionForCategory: path. (Mechanism confirmed from PoomSmart/YouGroupSettings.)
+static const NSInteger YTLiteGroup = 'ytlt';
+
+@interface YTSettingsGroupData : NSObject
+- (instancetype)initWithGroupType:(NSInteger)type;
+@end
+
+@interface YTAppSettingsGroupPresentationData : NSObject
++ (NSArray *)orderedGroups;
+@end
+
+%hook YTAppSettingsGroupPresentationData
++ (NSArray *)orderedGroups {
+    NSArray *groups = %orig;
+    if (!groups) return groups; // non-Cairo builds: no-op
+    NSMutableArray *mutableGroups = [groups mutableCopy];
+    YTSettingsGroupData *ytliteGroup = [[%c(YTSettingsGroupData) alloc] initWithGroupType:YTLiteGroup];
+    if (ytliteGroup) [mutableGroups insertObject:ytliteGroup atIndex:0];
+    return mutableGroups;
+}
+%end
+
+%hook YTSettingsGroupData
+- (NSString *)titleForSettingGroupType:(NSUInteger)type {
+    if (type == YTLiteGroup) return @"YouTube Plus";
+    return %orig;
+}
+- (NSArray *)orderedCategoriesForGroupType:(NSUInteger)type {
+    if (type == YTLiteGroup) return @[@(YTLiteSection)];
+    return %orig;
+}
+%end
+
 %hook YTSettingsSectionController
 - (void)setSelectedItem:(NSUInteger)selectedItem {
     if (selectedItem != NSNotFound) %orig;
@@ -119,7 +156,9 @@ static NSString *GetCacheSize() {
 - (void)updateYTLiteSectionWithEntry:(id)entry {
     NSMutableArray *sectionItems = [NSMutableArray array];
     Class YTSettingsSectionItemClass = %c(YTSettingsSectionItem);
-    YTSettingsViewController *settingsViewController = [self valueForKey:@"_settingsViewControllerDelegate"];
+    YTSettingsViewController *settingsViewController = nil;
+    @try { settingsViewController = [self valueForKey:@"_settingsViewControllerDelegate"]; } @catch (__unused NSException *e) {}
+    if (!settingsViewController) { @try { settingsViewController = [self valueForKey:@"_dataDelegate"]; } @catch (__unused NSException *e) {} }
 
     YTSettingsSectionItem *space = [%c(YTSettingsSectionItem) itemWithTitle:nil accessibilityIdentifier:@"YTLiteSectionItem" detailTextBlock:nil selectBlock:nil];
 
