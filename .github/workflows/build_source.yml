@@ -58,9 +58,14 @@ jobs:
 
       - name: Clone YouTubeHeader + PSHeader
         run: |
-          cd $THEOS/include || (mkdir -p $THEOS/include && cd $THEOS/include)
+          mkdir -p $THEOS/include
+          cd $THEOS/include
           git clone --quiet --depth=1 https://github.com/PoomSmart/YouTubeHeader.git
           git clone --quiet --depth=1 https://github.com/PoomSmart/PSHeader.git
+          # YTLite's YouTubeHeaders.h imports "../YouTubeHeader/..." (relative), expecting these as
+          # SIBLINGS of the source dir (main/). Expose them at the workspace root too.
+          cp -r YouTubeHeader "${{ github.workspace }}/YouTubeHeader"
+          cp -r PSHeader "${{ github.workspace }}/PSHeader"
 
       - name: Provide protobuf ObjC headers (needed by YTNativeShare.x)
         run: |
