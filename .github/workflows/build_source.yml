@@ -72,6 +72,19 @@ jobs:
           git checkout
           echo "protobuf objectivec headers:"; ls objectivec | head -n 5
 
+      - name: Provide roothide.h shim (sideload build doesn't use jbroot fallback)
+        run: |
+          # NSBundle+YTLite.h imports <roothide.h> only for a jbroot() fallback path that a
+          # sideloaded build never reaches (the YTLite.bundle is injected into the app itself).
+          # Provide a minimal identity shim so it compiles without the roothide toolchain.
+          mkdir -p "$THEOS/include"
+          cat > "$THEOS/include/roothide.h" <<'EOF'
+          #import <Foundation/Foundation.h>
+          static inline NSString *jbroot(NSString *path) { return path; }
+          static inline const char *jbrootpath(const char *path) { return path; }
+          EOF
+          echo "wrote $THEOS/include/roothide.h"
+
       - name: Build YTLite (.deb) from source
         run: |
           cd main
