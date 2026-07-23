@@ -50,19 +50,8 @@ static UIImage *YTImageNamed(NSString *imageName) {
         }
     }
 
-    if (ytlBool(@"removeCommunityPosts")) {
-        NSArray *posts = @[@"post_base_wrapper.eml", @"post_base_wrapper_slim.eml", @"image_post_root.eml", @"images_post_root.eml", @"images_post_root_slim.eml", @"text_post_root.eml", @"post_shelf", @"backstage_post", @"communityPost"];
-        for (NSString *p in posts) {
-            if ([description containsString:p]) return nil;
-        }
-    }
-
-    if (ytlBool(@"removeMixPlaylists")) {
-        NSArray *mixes = @[@"mix-watch", @"radioRenderer", @"compactRadioRenderer", @"gridRadioRenderer", @"RDMM", @"RDCLAK", @"RDEM", @"RDGMEM"];
-        for (NSString *m in mixes) {
-            if ([description containsString:m]) return nil;
-        }
-    }
+    // Community-post / mix removal intentionally NOT matched here yet — broad token guesses broke the
+    // feed layout on 21.29.3. Exact runtime element token to be captured on-device first (see diag hook).
 
     return %orig;
 }
@@ -70,18 +59,12 @@ static UIImage *YTImageNamed(NSString *imageName) {
 
 %hook YTSectionListViewController
 - (void)loadWithModel:(YTISectionListRenderer *)model {
-    BOOL killPosts = ytlBool(@"removeCommunityPosts");
-    BOOL killMix = ytlBool(@"removeMixPlaylists");
-    if (ytlBool(@"noAds") || killPosts || killMix) {
+    if (ytlBool(@"noAds")) {
         NSMutableArray <YTISectionListSupportedRenderers *> *contentsArray = model.contentsArray;
         NSIndexSet *removeIndexes = [contentsArray indexesOfObjectsPassingTest:^BOOL(YTISectionListSupportedRenderers *renderers, NSUInteger idx, BOOL *stop) {
             YTIItemSectionRenderer *sectionRenderer = renderers.itemSectionRenderer;
             YTIItemSectionSupportedRenderers *firstObject = [sectionRenderer.contentsArray firstObject];
-            if (ytlBool(@"noAds") && (firstObject.hasPromotedVideoRenderer || firstObject.hasCompactPromotedVideoRenderer || firstObject.hasPromotedVideoInlineMutedRenderer)) return YES;
-            NSString *desc = [sectionRenderer description] ?: @"";
-            if (killPosts && ([desc containsString:@"communityPostSectionRenderer"] || [desc containsString:@"postsContainerRenderer"] || [desc containsString:@"backstagePost"] || [desc containsString:@"post_root.eml"] || [desc containsString:@"post_base_wrapper"])) return YES;
-            if (killMix && ([desc containsString:@"radioRenderer"] || [desc containsString:@"compactRadioRenderer"] || [desc containsString:@"gridRadioRenderer"] || [desc containsString:@"RDMM"] || [desc containsString:@"RDCLAK"])) return YES;
-            return NO;
+            return firstObject.hasPromotedVideoRenderer || firstObject.hasCompactPromotedVideoRenderer || firstObject.hasPromotedVideoInlineMutedRenderer;
         }];
         [contentsArray removeObjectsAtIndexes:removeIndexes];
     } %orig;
